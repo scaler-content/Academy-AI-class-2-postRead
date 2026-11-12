@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prompt enginnering post read</title>
+<style>
+:root{
+  --maroon:#6B1F2A; --maroon-deep:#4A1019; --maroon-soft:#8C3B47; --maroon-tint:#F0DCD9;
+  --beige:#F6EFE3; --beige-2:#EDE1CC; --beige-3:#DCC9A8; --paper:#FCF8F0;
+  --ink:#2B1A1D; --muted:#6E5A5C; --line:#D9C7A6;
+  --serif:Georgia,"Iowan Old Style","Palatino Linotype",serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:76px}
+body{margin:0;background:var(--beige);color:var(--ink);font:17px/1.7 var(--sans)}
+a{color:var(--maroon)}
+:focus-visible{outline:3px solid var(--maroon);outline-offset:2px;border-radius:4px}
+.skip{position:absolute;left:-999px;top:8px;background:var(--maroon);color:#fff;padding:8px 14px;border-radius:6px;z-index:100}
+.skip:focus{left:8px}
+
+/* top bar */
+.bar{position:sticky;top:0;z-index:50;background:var(--maroon-deep);color:var(--beige)}
+.bar-in{max-width:1180px;margin:auto;display:flex;align-items:center;gap:16px;padding:10px 20px}
+.bar b{font-family:var(--serif);font-size:16px;white-space:nowrap}
+.bar nav{display:flex;gap:4px;overflow-x:auto;scrollbar-width:thin}
+.bar nav a{color:var(--beige-2);text-decoration:none;font-size:13px;padding:5px 10px;border-radius:99px;white-space:nowrap}
+.bar nav a:hover,.bar nav a.on{background:var(--beige);color:var(--maroon-deep)}
+.prog{height:3px;background:var(--maroon-soft)}
+.prog i{display:block;height:100%;width:0;background:var(--beige-3)}
+
+/* hero */
+.hero{background:var(--maroon);color:var(--beige);padding:84px 20px 76px;text-align:left}
+.hero-in{max-width:880px;margin:auto}
+.kicker{letter-spacing:.14em;text-transform:uppercase;font-size:13px;color:var(--beige-3);margin:0 0 14px}
+.hero h1{font:700 clamp(36px,6vw,62px)/1.08 var(--serif);margin:0 0 20px}
+.hero p{font-size:19px;max-width:660px;color:var(--beige-2);margin:0 0 28px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips span{border:1px solid var(--beige-3);border-radius:99px;padding:4px 14px;font-size:14px;color:var(--beige)}
+
+/* layout */
+.wrap{max-width:1180px;margin:auto;padding:0 20px;display:grid;grid-template-columns:210px minmax(0,1fr);gap:48px}
+aside{position:sticky;top:84px;align-self:start;padding-top:48px;font-size:14px}
+aside ol{list-style:none;margin:0;padding:0;border-left:2px solid var(--line)}
+aside a{display:block;padding:6px 14px;color:var(--muted);text-decoration:none;margin-left:-2px;border-left:2px solid transparent}
+aside a:hover{color:var(--maroon)}
+aside a.on{color:var(--maroon);border-left-color:var(--maroon);font-weight:600}
+main{max-width:800px;padding-bottom:40px}
+section{padding:56px 0 8px;border-bottom:1px solid var(--line)}
+section:last-of-type{border-bottom:0}
+.num{font:600 14px var(--mono);color:var(--maroon-soft);letter-spacing:.08em}
+h2{font:700 clamp(28px,4vw,38px)/1.2 var(--serif);color:var(--maroon-deep);margin:6px 0 18px}
+h3{font:700 22px/1.3 var(--serif);color:var(--maroon);margin:36px 0 10px}
+p{margin:0 0 16px}
+.lead{font-size:20px;color:var(--muted)}
+ul{padding-left:22px}
+li{margin-bottom:6px}
+code{font-family:var(--mono);font-size:.88em;background:var(--beige-2);padding:1px 6px;border-radius:4px}
+
+/* components */
+.card{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:22px;margin:22px 0}
+.callout{border-left:5px solid var(--maroon);background:var(--maroon-tint);padding:16px 20px;border-radius:0 12px 12px 0;margin:24px 0}
+.callout strong:first-child{display:block;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--maroon);margin-bottom:4px}
+.callout p:last-child{margin:0}
+.quote{font:italic 22px/1.45 var(--serif);color:var(--maroon-deep);border-left:4px solid var(--beige-3);padding:4px 0 4px 20px;margin:26px 0}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.tile{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:18px}
+.tile h4{margin:0 0 6px;font:700 17px var(--serif);color:var(--maroon)}
+.tile p{margin:0;font-size:15px}
+.viz{background:var(--paper);border:2px solid var(--maroon);border-radius:16px;padding:0;margin:30px 0;overflow:hidden}
+.viz-h{background:var(--maroon);color:var(--beige);padding:10px 20px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:13px;letter-spacing:.06em;text-transform:uppercase}
+.viz-b{padding:22px}
+.viz small,.note{color:var(--muted);font-size:14px}
+button,.btn{font:600 14px var(--sans);cursor:pointer;border-radius:99px;border:1.5px solid var(--maroon);background:transparent;color:var(--maroon);padding:7px 16px}
+button:hover{background:var(--maroon-tint)}
+button[aria-pressed=true],button.primary,button[aria-selected=true]{background:var(--maroon);color:var(--beige)}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 14px}
+textarea{width:100%;font:16px/1.5 var(--mono);padding:12px;border:1.5px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);resize:vertical}
+input[type=range]{width:100%;accent-color:var(--maroon)}
+label{font-weight:600;font-size:14px}
+
+table{border-collapse:collapse;width:100%;margin:20px 0;font-size:15px;background:var(--paper)}
+th,td{border:1px solid var(--line);padding:10px 12px;text-align:left;vertical-align:top}
+th{background:var(--maroon);color:var(--beige)}
+td:first-child{font-weight:600;color:var(--maroon-deep)}
+.tw{overflow-x:auto}
+
+pre{background:var(--maroon-deep);color:var(--beige);padding:18px;border-radius:12px;overflow-x:auto;font:14px/1.6 var(--mono);margin:0}
+.codewrap{position:relative;margin:20px 0}
+.codewrap .cap{font:600 12px var(--mono);color:var(--beige-3);background:#3a0c14;padding:6px 14px;border-radius:12px 12px 0 0;display:flex;justify-content:space-between;align-items:center}
+.codewrap .cap+pre{border-radius:0 0 12px 12px}
+.copy{padding:2px 10px;font-size:12px;color:var(--beige);border-color:var(--beige-3)}
+.copy:hover{background:var(--maroon-soft)}
+.c{color:#CBB89B}.k{color:#F0B8A0}.s{color:#E6D3A3}
+
+details{background:var(--paper);border:1px solid var(--line);border-radius:12px;margin:12px 0}
+summary{cursor:pointer;padding:14px 18px;font-weight:600;color:var(--maroon-deep);list-style:none;display:flex;gap:10px;align-items:center}
+summary::before{content:"+";font:700 20px var(--mono);color:var(--maroon);width:18px}
+details[open] summary::before{content:"–"}
+details>div{padding:0 18px 14px}
+details .tag{font-size:11px;letter-spacing:.1em;text-transform:uppercase;background:var(--beige-3);color:var(--maroon-deep);border-radius:99px;padding:2px 10px}
+
+/* quiz */
+.quiz{background:var(--maroon-deep);color:var(--beige);border-radius:16px;padding:24px;margin:34px 0}
+.quiz .qh{font:600 12px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--beige-3)}
+.quiz p.q{font:600 19px/1.5 var(--serif);margin:8px 0 16px}
+.quiz .opts{display:grid;gap:10px}
+.quiz .opt{display:block;text-align:left;width:100%;border:1.5px solid var(--beige-3);color:var(--beige);border-radius:12px;padding:12px 16px;font:15px/1.5 var(--sans);font-weight:400;background:transparent}
+.quiz .opt:hover:not(:disabled){background:var(--maroon)}
+.quiz .opt.right{background:var(--beige);color:var(--maroon-deep);border-color:var(--beige);font-weight:600}
+.quiz .opt.wrong{border-style:dashed;opacity:.8;text-decoration:line-through}
+.quiz .opt:disabled{cursor:default}
+.quiz .ex{margin-top:16px;background:var(--beige);color:var(--ink);border-radius:12px;padding:14px 18px;font-size:15px}
+.quiz .ex b{color:var(--maroon)}
+
+/* tokens */
+.tok{display:inline-block;border:1px solid var(--maroon-soft);border-radius:5px;padding:1px 3px;margin:2px 1px;font:15px/1.5 var(--mono);white-space:pre;background:var(--beige-2)}
+.tok:nth-child(even){background:var(--maroon-tint)}
+.tokbox{background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:12px;min-height:90px;max-height:240px;overflow:auto}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}
+.stat{background:var(--beige-2);border-radius:10px;padding:10px;text-align:center}
+.stat b{display:block;font:700 26px var(--serif);color:var(--maroon)}
+.stat span{font-size:12px;color:var(--muted)}
+.cmp{display:grid;gap:8px;margin-top:10px}
+.cmp div{display:grid;grid-template-columns:110px 1fr 70px;gap:10px;align-items:center;font-size:14px}
+.cmp i{display:block;height:16px;background:var(--maroon);border-radius:4px;transition:width .3s}
+
+/* sampling bars */
+.sbar{display:grid;grid-template-columns:86px 1fr 60px;gap:10px;align-items:center;margin:6px 0;font-size:14px}
+.sbar .t{font-family:var(--mono);text-align:right}
+.sbar .tr{height:24px;background:var(--beige-2);border-radius:5px;position:relative;overflow:hidden}
+.sbar .f{position:absolute;inset:0 auto 0 0;background:var(--maroon);transition:width .25s}
+.sbar .g{position:absolute;inset:0 auto 0 0;border-right:2px dashed var(--maroon-soft);background:repeating-linear-gradient(45deg,transparent 0 5px,rgba(107,31,42,.18) 5px 7px)}
+.sbar .cut{font-size:11px;color:var(--maroon-soft);text-transform:uppercase;letter-spacing:.06em}
+.ctrls{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-bottom:16px}
+.ctrls output{font:700 18px var(--mono);color:var(--maroon)}
+
+/* desk */
+.desk{border:2px solid var(--maroon);border-radius:12px;padding:10px;background:#fff;min-height:60px}
+.paper{display:flex;justify-content:space-between;gap:10px;padding:7px 12px;border-radius:8px;margin:5px 0;font-size:14px;background:var(--beige-2);border:1px solid var(--beige-3)}
+.paper.out{border:2px dashed var(--maroon-soft);background:transparent;color:var(--muted);text-decoration:line-through}
+.paper.ans{background:var(--maroon-tint);border:1px solid var(--maroon-soft);font-style:italic}
+.meter{height:14px;background:var(--beige-2);border-radius:99px;overflow:hidden;margin:6px 0 12px}
+.meter i{display:block;height:100%;background:var(--maroon);transition:width .3s}
+
+/* msgs */
+.msg{display:grid;grid-template-columns:88px 1fr;gap:12px;align-items:start;margin:6px 0;padding:8px 12px;border-radius:10px;background:var(--beige-2);font-size:14px}
+.msg.off{opacity:.45;border:1.5px dashed var(--maroon-soft);background:transparent}
+.role{font:700 12px var(--mono);text-transform:uppercase;color:var(--maroon-deep);border:1.5px solid var(--maroon);border-radius:99px;text-align:center;padding:1px 6px}
+
+/* terms nest */
+.nest{display:grid;gap:0}
+.nest button{display:block;width:100%;text-align:left;border-radius:14px;margin:0;padding:12px 16px}
+.nest .l1{background:var(--beige-2);border-color:var(--maroon)}
+.nest .l2{background:var(--beige-3);width:calc(100% - 28px);margin:8px 0 0 28px}
+.nest .l3{background:var(--maroon-tint);width:calc(100% - 56px);margin:8px 0 0 56px}
+.nest .l4{background:var(--maroon-soft);color:var(--beige);width:calc(100% - 84px);margin:8px 0 8px 84px}
+.nest button[aria-pressed=true]{outline:3px solid var(--maroon);background:var(--maroon);color:var(--beige)}
+.nestinfo{margin-top:14px;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:14px 18px;min-height:96px}
+
+footer{background:var(--maroon-deep);color:var(--beige-2);text-align:center;padding:36px 20px;font-family:var(--serif);font-size:18px}
+footer small{display:block;font:13px var(--sans);color:var(--beige-3);margin-top:6px}
+
+@media(max-width:1000px){.wrap{grid-template-columns:1fr}aside{display:none}}
+@media(max-width:700px){
+  body{font-size:16px}.grid2,.grid3,.ctrls{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}
+  .bar b{display:none}.hero{padding:56px 20px}.sbar{grid-template-columns:70px 1fr 50px}
+  .cmp div{grid-template-columns:80px 1fr 56px}.msg{grid-template-columns:1fr}
+  .nest .l2{margin-left:12px;width:calc(100% - 12px)}.nest .l3{margin-left:24px;width:calc(100% - 24px)}.nest .l4{margin-left:36px;width:calc(100% - 36px)}
+}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+<style>
+.pg{background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:16px 20px;font:15px/1.65 var(--sans)}
+.pg h4{font:700 19px var(--serif);margin:8px 0;color:var(--maroon-deep)}
+.pg p{margin:0 0 10px}
+[data-mode=noise] .nz{text-decoration:line-through;border:1.5px dashed var(--maroon-soft);opacity:.65;border-radius:4px;padding:0 4px}
+[data-mode=nums] .num,[data-mode=c] .r-c,[data-mode=e] .r-e,[data-mode=i] .r-i{background:var(--maroon-tint);border-bottom:3px solid var(--maroon);font-weight:700;padding:0 2px}
+.diff{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.prompt{background:var(--maroon-deep);color:var(--beige);border-radius:12px;padding:14px 16px;font:14px/1.6 var(--mono);white-space:pre-wrap;margin:0}
+.prompt .hl{background:var(--maroon-soft);border-radius:3px;padding:0 2px}
+.parts{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:14px}
+.parts button{border-radius:12px;padding:10px 6px;text-align:center;line-height:1.3}
+.parts button b{display:block;font:700 22px var(--serif)}
+.parts button span{font-size:12px;font-weight:500}
+.vd{border:2px solid var(--maroon);border-radius:12px;padding:14px 18px;background:var(--maroon-tint);margin-top:14px}
+.ok{color:#2e5d2e;font-weight:700}.bad{color:var(--maroon);font-weight:700}
+.chk{display:grid;gap:6px;margin:12px 0}
+.chk div{display:flex;gap:10px;align-items:baseline;padding:8px 12px;border-radius:10px;background:var(--beige-2);font-size:15px}
+.chk div.pass{border-left:5px solid #2e5d2e}.chk div.fail{border-left:5px dashed var(--maroon)}
+.flow{display:grid;grid-template-columns:1fr 28px 1fr 28px 1fr;gap:6px;align-items:stretch}
+.flow .arr{display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--maroon)}
+.flow .box{background:var(--beige-2);border:1.5px solid var(--line);border-radius:12px;padding:12px;font-size:14px;opacity:.4}
+.flow .box.on{opacity:1;border-color:var(--maroon);background:var(--paper)}
+.flow .box h5{margin:0 0 6px;font:700 14px var(--serif);color:var(--maroon)}
+.flow pre{font-size:12px;padding:10px;white-space:pre-wrap}
+.slots{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.slot{border:2px solid var(--maroon);border-radius:12px;padding:14px;background:var(--paper)}
+.slot h4{margin:0 0 6px;font:700 16px var(--serif);color:var(--maroon)}
+.slot.u{border-style:dashed}
+.mx{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:12px}
+@media(max-width:700px){.diff,.slots,.mx{grid-template-columns:1fr}.parts{grid-template-columns:repeat(2,1fr)}.flow{grid-template-columns:1fr}.flow .arr{transform:rotate(90deg)}}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="bar" role="banner">
+  <div class="bar-in">
+    <b>Prompt enginnering post read</b>
+    <nav aria-label="Sections" id="topnav"></nav>
+  </div>
+  <div class="prog" aria-hidden="true"><i id="pbar"></i></div>
+</header>
+
+<div class="hero">
+  <div class="hero-in">
+    <p class="kicker">Class 2 · AI and Agents</p>
+    <h1>Prompt enginnering post read</h1>
+    <p>Why the prompt is the product, how to write a complete one, the techniques worth knowing, and how the prompt moves into the code that runs your app.</p>
+    <div class="chips"><span>RCTFC</span><span>Role prompting</span><span>Few-shot</span><span>JSON output</span><span>Chain-of-thought</span><span>Self-critique</span><span>Chaining</span></div>
+  </div>
+</div>
+
+<div class="wrap">
+<aside aria-label="Table of contents"><ol id="toc"></ol></aside>
+<main id="main">
+
+<!-- 1 -->
+<section id="s1" data-title="Where we are">
+  <span class="num">01</span>
+  <h2>Where we are: it talks, now make it say something useful</h2>
+  <p class="lead">Last class you made a model reply in code. That is the plumbing, and the plumbing is the easy half.</p>
+  <p>The gap between a useless AI answer and one you would ship almost never comes down to which model you picked. Two people on the same model, the same free tier and the same task get completely different results. The difference is the prompt.</p>
+
+  <h3>Today's page</h3>
+  <p>Everything in this class works on one piece of text: the readable content of a web page, exactly as it will arrive in your app next class. Notice the cruft. The navigation menu, the "Also read" line, the advert and the copyright notice are what a real scraper hands you, and dealing with them is a prompt problem before it is a code problem.</p>
+
+  <div class="viz">
+    <div class="viz-h"><span>Visualizer · The scraped page</span><span>Select a view</span></div>
+    <div class="viz-b">
+      <div class="row" role="group" aria-label="Page view" id="pgmodes1">
+        <button data-m="raw" aria-pressed="true">As scraped</button>
+        <button data-m="noise" aria-pressed="false">Noise to ignore</button>
+        <button data-m="nums" aria-pressed="false">Numbers that affect a decision</button>
+      </div>
+      <div class="pg" id="pg1" data-mode="raw"></div>
+      <p class="note" id="pgnote1" style="margin:12px 0 0" aria-live="polite">The text exactly as a scraper would hand it to your app.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 2 -->
+<section id="s2" data-title="The prompt is the product">
+  <span class="num">02</span>
+  <h2>The prompt is the product</h2>
+  <p>A lot of the AI products people pay for are, underneath, the same model you call free from your laptop. No special training, no secret model. What they sell is the prompt wrapped around your input, and a place to type.</p>
+  <p>That is not a criticism. It is the opportunity. If the prompt is what makes the product good, prompt writing is product work, and you can do it today with no budget.</p>
+
+  <h3>Build a product out of one line</h3>
+  <p>Same model, same free key, same page text. Only the text above the page changes.</p>
+  <div class="viz">
+    <div class="viz-h"><span>Compare · Two prompts, one model</span><span>Select a prompt</span></div>
+    <div class="viz-b">
+      <div class="row" role="group" aria-label="Prompt choice">
+        <button id="cmpA" aria-pressed="true">Prompt A: one line</button>
+        <button id="cmpB" aria-pressed="false">Prompt B: rules</button>
+      </div>
+      <div class="diff">
+        <div><label>What you send</label><pre class="prompt" id="cmpP"></pre></div>
+        <div class="vd" style="margin-top:22px"><b id="cmpT"></b><p id="cmpD" style="margin:8px 0 0" aria-live="polite"></p></div>
+      </div>
+    </div>
+  </div>
+  <div class="callout"><strong>Important</strong><p>Nothing changed except the text above the page. That block is the entire product, and by the end of this class it sits inside your <code>summarizer.py</code>.</p></div>
+
+  <details><summary>If it is just a prompt, what stops a competitor copying it? <span class="tag">Common doubt</span></summary><div>
+    <p>Very little, and that is true of most software. What is hard to copy is knowing which rules to write, which comes from watching real users be disappointed. The prompt is cheap to copy and expensive to get right.</p></div></details>
+
+  <div class="quiz" data-quiz="q1"></div>
+</section>
+
+<!-- 3 -->
+<section id="s3" data-title="RCTFC">
+  <span class="num">03</span>
+  <h2>RCTFC: build your summariser's prompt</h2>
+  <p>Five parts. Write all five and most prompts come out right the first time.</p>
+  <div class="tw"><table>
+    <tr><th>Part</th><th>What it answers</th><th>In your summariser</th></tr>
+    <tr><td>R · Role</td><td>Who is writing</td><td>You summarise web pages for people deciding whether to read them</td></tr>
+    <tr><td>C · Context</td><td>What is going on, who reads it</td><td>Scraped page text, shown in an app to someone in a hurry</td></tr>
+    <tr><td>T · Task</td><td>The one thing to do</td><td>Summarise this page</td></tr>
+    <tr><td>F · Format</td><td>The exact shape of the answer</td><td>One opening line, then up to four bullets</td></tr>
+    <tr><td>C · Constraints</td><td>The limits and the rules</td><td>Under 80 words, keep the numbers, ignore the nav, do not invent</td></tr>
+  </table></div>
+  <p>Writing a prompt is writing a good bug report. "The app is broken" gets you nothing. Steps to reproduce, what you expected, what happened and which browser gets you a fix. Same reader, completely different outcome.</p>
+
+  <h3>Build it one part at a time</h3>
+  <p>Start with the task alone and add one part per step.</p>
+  <div class="viz">
+    <div class="viz-h"><span>Visualizer · Prompt builder</span><span>Switch parts on and off</span></div>
+    <div class="viz-b">
+      <div class="parts" id="parts" role="group" aria-label="RCTFC parts"></div>
+      <div class="meter" aria-hidden="true"><i id="rmeter"></i></div>
+      <div class="diff">
+        <div><label>Assembled prompt</label><pre class="prompt" id="rprompt"></pre></div>
+        <div><label>What this adds</label><div class="vd" id="reffect" aria-live="polite" style="margin-top:6px"></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="callout"><strong>Important</strong><p>Order does not matter much. Completeness does. A prompt missing Format is the single most common reason people say the AI did not do what they asked.</p></div>
+  <p class="note">Format and Constraints do most of the work on routine tasks. Role matters most when tone is the deliverable.</p>
+
+  <details><summary>Does this mean every prompt has to be long? <span class="tag">Common doubt</span></summary><div>
+    <p>No. It means every prompt has to be <b>complete</b>. "Summarise this page in 3 bullets for someone deciding whether to read it" is short and has Task, Format, Constraints and Context in it. Short and complete beats long and vague.</p></div></details>
+
+  <div class="quiz" data-quiz="q2"></div>
+</section>
+
+<!-- 4 -->
+<section id="s4" data-title="Role prompting">
+  <span class="num">04</span>
+  <h2>Role prompting</h2>
+  <p>Role is the part people skip, and it is the cheapest way to change tone and depth in one line. A role does two things: it sets the vocabulary, and it sets what the model thinks is worth mentioning.</p>
+  <p>Summarise the metro page as a commuter and you get times and fares. As a civil engineer and you get elevated stations and the interchange. As an investor and you get passenger numbers. Same page.</p>
+
+  <div class="viz">
+    <div class="viz-h"><span>Visualizer · Role lens</span><span>Same page, three readers</span></div>
+    <div class="viz-b">
+      <div class="row" role="group" aria-label="Role" id="pgmodes2">
+        <button data-m="c" aria-pressed="true">Commuter</button>
+        <button data-m="e" aria-pressed="false">Civil engineer</button>
+        <button data-m="i" aria-pressed="false">Investor</button>
+      </div>
+      <div class="pg" id="pg2" data-mode="c"></div>
+      <p class="note" id="pgnote2" style="margin:12px 0 0" aria-live="polite"></p>
+    </div>
+  </div>
+
+  <div class="callout"><strong>Important</strong><p>A role changes emphasis and tone. It does not add knowledge the model does not have, and it does not make the model qualified. "You are a doctor" changes how an answer sounds, not whether it is safe to act on. Do not over-trust role prompts.</p></div>
+  <details><summary>Is "You are an expert" worth adding? <span class="tag">Optional doubt</span></summary><div>
+    <p>Barely. It is too vague to change what the model emphasises. A role earns its place when it implies an audience and a vocabulary. "You summarise pages for people deciding whether to read them" does work. "You are an expert" does not.</p></div></details>
+</section>
+
+<!-- 5 -->
+<section id="s5" data-title="Zero & few-shot">
+  <span class="num">05</span>
+  <h2>Zero-shot and few-shot</h2>
+  <p><b>Zero-shot</b> is instructions with no examples. It is enough for most things. <b>Few-shot</b> is when you paste two or three examples of the output you want, then ask for one more. You are not describing the format any more. You are showing it.</p>
+  <p>The analogy: telling a new joiner "follow our code style" versus opening three of your best pull requests and saying "write it like this". Same person, completely different first attempt.</p>
+
+  <h3>When examples beat instructions</h3>
+  <p>Use few-shot when the format is specific to you and hard to describe. You could spend a paragraph explaining the house style of your summaries, or paste two real ones.</p>
+  <div class="viz">
+    <div class="viz-h"><span>Compare · Instructions vs examples</span><span>Toggle</span></div>
+    <div class="viz-b">
+      <div class="row" role="group" aria-label="Mode">
+        <button id="zs" aria-pressed="true">Zero-shot</button><button id="fs" aria-pressed="false">Few-shot</button>
+      </div>
+      <pre class="prompt" id="fsp"></pre>
+      <div class="vd" id="fsn" aria-live="polite"></div>
+    </div>
+  </div>
+  <div class="callout"><strong>Important</strong><p>Two or three examples is the sweet spot. One example and the model treats it as a one-off. Ten and you are paying for tokens you did not need. If quality is still off at three, your examples probably disagree with each other.</p></div>
+  <details><summary>Does few-shot teach the model permanently? <span class="tag">Common doubt</span></summary><div>
+    <p>No. The examples live in that one prompt and are gone the moment the call ends. Nothing is saved, nothing is trained. This is the no-memory point from Class 1: if you want the examples every time, they have to be in the system prompt your code sends every time, which is what you do in Section 10.</p></div></details>
+
+  <div class="quiz" data-quiz="q3"></div>
+</section>
+
+<!-- 6 -->
+<section id="s6" data-title="Structured output">
+  <span class="num">06</span>
+  <h2>Structured outputs: asking for JSON</h2>
+  <p>So far the output was text for a person. Next class your summary goes into a web interface, and after that people wire these into automations. The moment a program reads the output, the shape has to be exact. Ask for JSON and state the shape.</p>
+  <div class="codewrap"><div class="cap"><span>prompt</span><button class="copy">Copy</button></div><pre>Return the summary as JSON with exactly these keys:
+
+{
+  "headline": "Pune Metro Line 3 opens Monday",
+  "bullets": ["...", "..."],
+  "numbers_mentioned": ["Rs 10 to Rs 45", "06:00 to 22:00"],
+  "page_type": "news"
+}
+
+Rules:
+- bullets: between 2 and 4 items, each under 15 words
+- numbers_mentioned: copy figures exactly as written on the page, or []
+- page_type: one of news, product, blog, documentation, other
+- Return only the JSON object. No explanation, no code fences, no preamble.</pre></div>
+  <div class="callout"><strong>Important</strong><p>That last line is the one people forget, and it is why their app breaks. Without it you get a friendly sentence before the JSON, which is not valid JSON, and <code>json.loads</code> fails on character one.</p></div>
+
+  <div class="viz">
+    <div class="viz-h"><span>Visualizer · Parser test</span><span>Runs a real JSON parser in your browser</span></div>
+    <div class="viz-b">
+      <div class="row" role="group" aria-label="Sample outputs">
+        <button data-j="clean" aria-pressed="true">With the "return only" line</button>
+        <button data-j="chatty" aria-pressed="false">Without it: chatty preamble</button>
+        <button data-j="fence" aria-pressed="false">Wrapped in code fences</button>
+        <button data-j="bad" aria-pressed="false">Almost right</button>
+      </div>
+      <label for="jin">Model output (editable, illustrative)</label>
+      <textarea id="jin" rows="9"></textarea>
+      <div class="chk" id="jres" aria-live="polite"></div>
+    </div>
+  </div>
+
+  <details><summary>What if it returns JSON that is almost right? <span class="tag">Common doubt</span></summary><div>
+    <p>Tighten the spec rather than fixing the output by hand. Name every key, say what type each one is, and say what to do when the information is missing. Most malformed output comes from a case you did not tell it how to handle, and "use an empty list if there are none" removes the most common one.</p></div></details>
+  <p class="note">Paid APIs can also enforce a schema so the response is guaranteed to parse rather than merely asked to. It is the same idea with a guarantee.</p>
+</section>
+
+<!-- 7 -->
+<section id="s7" data-title="Chain-of-thought">
+  <span class="num">07</span>
+  <h2>Chain-of-thought, and when it still matters</h2>
+  <p>Chain-of-thought is one instruction: ask the model to work through the problem step by step before answering.</p>
+  <div class="callout"><strong>This technique has aged</strong><p>A model that is already thinking before it answers does this on its own, and telling it to think step by step adds nothing. A model that is not thinking has no such step, and there the instruction still helps a lot.</p></div>
+  <p>On <code>gpt-oss</code> that is a dial rather than two different models. Your summariser runs at low reasoning effort, because summarising has no dependent steps, and low effort is exactly where this technique still earns its place. So chain-of-thought is now a <b>decision</b>, not a habit.</p>
+
+  <div class="viz">
+    <div class="viz-h"><span>Visualizer · Should I add it?</span><span>Answer two questions</span></div>
+    <div class="viz-b">
+      <div class="mx">
+        <div><label>Is the model already thinking before it answers?</label>
+          <div class="row" role="group"><button data-t="1" aria-pressed="false">Yes</button><button data-t="0" aria-pressed="true">No (low effort)</button></div></div>
+        <div><label>Do the task's steps depend on each other?</label>
+          <div class="row" role="group"><button data-d="1" aria-pressed="true">Yes (messy page)</button><button data-d="0" aria-pressed="false">No (clean article)</button></div></div>
+      </div>
+      <div class="vd" id="cotv" aria-live="polite"></div>
+    </div>
+  </div>
+
+  <h3>Where it earns its place</h3>
+  <p>Summarising a clean article does not need it. Summarising a messy page does. At low effort the plain summary of the metro page usually does fine, though shallow. Now ask the model to work in named stages:</p>
+  <ol>
+    <li>Separate the article from the navigation and adverts.</li>
+    <li>Identify which numbers affect a reader's decision.</li>
+    <li>Write the summary from only those.</li>
+  </ol>
+  <p>On a cluttered page the result is noticeably tighter. The plain version is not wrong; shallow is the thing to watch for.</p>
+
+  <div class="quiz" data-quiz="q4"></div>
+</section>
+
+<!-- 8 -->
+<section id="s8" data-title="Self-critique">
+  <span class="num">08</span>
+  <h2>Self-critique: let it mark its own work</h2>
+  <p>A model is better at spotting a problem in finished text than at avoiding it while writing. That asymmetry is free quality. The pattern has three moves: <b>draft, critique, revise</b>.</p>
+  <div class="codewrap"><div class="cap"><span>prompt</span><button class="copy">Copy</button></div><pre>Write the summary.
+
+Then, before showing me anything, check your own draft against these:
+- Is every number that affects a decision still in it?
+- Did you include anything that is not on the page?
+- Did any navigation, advert or "also read" text leak in?
+- Is it under 80 words?
+
+List what failed, fix it, and show me only the corrected summary.</pre></div>
+  <div class="callout"><strong>Important</strong><p>The checklist is what makes this work. "Check your work and improve it" produces a paragraph of self-congratulation. Named checks produce real catches, because each one is a question with a yes or no answer.</p></div>
+
+  <div class="viz">
+    <div class="viz-h"><span>Visualizer · Run the checklist yourself</span><span>Illustrative draft, editable</span></div>
+    <div class="viz-b">
+      <div class="row"><button id="dflaw" aria-pressed="true">Flawed draft</button><button id="dfix" aria-pressed="false">Revised draft</button></div>
+      <label for="din">Summary draft of the metro page</label>
+      <textarea id="din" rows="7"></textarea>
+      <div class="chk" id="dres" aria-live="polite"></div>
+      <p class="note" style="margin:0">The fourth check, "anything not on the page", needs a human or the model to compare against the source. The first three are computed live above. Try editing the draft and watch the checks change.</p>
+    </div>
+  </div>
+
+  <details><summary>Is the model actually catching mistakes, or just saying it did? <span class="tag">Common doubt</span></summary><div>
+    <p>Both happen, which is why you ask for the list of what failed. If the critique names a specific line and the revision changes that line, it did the work. If it says "improved clarity and flow" and nothing moved, it did not, and you need sharper checks.</p></div></details>
+  <p><b>A check that belongs on almost every prompt:</b> "Did you make anything up?"</p>
+</section>
+
+<!-- 9 -->
+<section id="s9" data-title="Chaining">
+  <span class="num">09</span>
+  <h2>Prompt chaining: one job per prompt</h2>
+  <p>When a prompt tries to do four things, it usually does the first well and the rest badly. Chaining splits the work. Each prompt does one job and hands its output to the next.</p>
+  <p>For your app: the first prompt strips the page down to the article and pulls out the facts as JSON. The second turns that JSON into the summary a person reads. The facts cannot drift between them, because the second prompt never sees the messy page.</p>
+
+  <div class="viz">
+    <div class="viz-h"><span>Visualizer · The chain</span><span>Step through (illustrative data)</span></div>
+    <div class="viz-b">
+      <div class="row"><button id="cprev">‹ Back</button><button id="cnext" class="primary">Next ›</button><small id="cstep"></small></div>
+      <div class="flow" id="flow"></div>
+    </div>
+  </div>
+
+  <div class="viz">
+    <div class="viz-h"><span>Try it · The "and" test</span><span>One job or two?</span></div>
+    <div class="viz-b">
+      <div class="row">
+        <button data-a="Extract the facts and summarise them">Extract and summarise</button>
+        <button data-a="Clean the text and format it">Clean and format</button>
+        <button data-a="Find the bug and fix it">Find and fix</button>
+        <button data-a="Summarise the page">Summarise</button>
+      </div>
+      <label for="ain">Describe your task</label>
+      <input id="ain" type="text" style="width:100%;font:16px var(--sans);padding:10px;border:1.5px solid var(--line);border-radius:10px">
+      <div class="vd" id="ares" aria-live="polite"></div>
+    </div>
+  </div>
+  <div class="callout"><strong>Important</strong><p>The test for whether to chain: if you can describe the task with the word "and" between two verbs, it is probably two prompts. Extract and summarise. Clean and format. Find and fix.</p></div>
+  <p class="note">Chaining by hand is tedious, which is why automation tools exist. In Class 6 you build this kind of chain in n8n, where the output of one step drops into the next as a variable. Reusable prompt templates with variables belong there too.</p>
+
+  <div class="quiz" data-quiz="q5"></div>
+</section>
+
+<!-- 10 -->
+<section id="s10" data-title="summarizer.py">
+  <span class="num">10</span>
+  <h2>Put it in code: summarizer.py</h2>
+  <p>You have spent an hour getting a prompt right in a chat window, where the loop is three seconds. Now it goes where it will live.</p>
+  <p>The code does three things: holds your prompt as a string, sends it as the <b>system</b> message with the page text as the <b>user</b> message, and returns the reply. It is the same four-step shape from Class 1 with your prompt dropped into the system slot.</p>
+
+  <div class="viz">
+    <div class="viz-h"><span>Diagram · Two slots</span><span>Rules in one, page in the other</span></div>
+    <div class="viz-b">
+      <div class="slots">
+        <div class="slot"><h4>system</h4><p style="margin:0">Your rules: the prompt you wrote today. Trusted. Sent on every call.</p></div>
+        <div class="slot u"><h4>user</h4><p style="margin:0">"Summarise this page:" plus the page text. Untrusted: it comes from the internet.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="codewrap"><div class="cap"><span>summarizer.py</span><button class="copy">Copy</button></div><pre><span class="c"># Your prompt, now in the place that runs it.</span>
+
+<span class="k">import</span> os
+<span class="k">from</span> dotenv <span class="k">import</span> load_dotenv
+<span class="k">from</span> openai <span class="k">import</span> OpenAI
+
+load_dotenv()
+
+key = os.getenv(<span class="s">"GROQ_API_KEY"</span>)
+<span class="k">if not</span> key:
+    <span class="k">raise</span> SystemExit(<span class="s">"No GROQ_API_KEY found. Is your .env in this same folder?"</span>)
+
+client = OpenAI(
+    api_key=key,
+    base_url=<span class="s">"https://api.groq.com/openai/v1"</span>,
+)
+
+<span class="c"># Everything you wrote in Sections 2 to 8 goes here, between the triple quotes.</span>
+SYSTEM_PROMPT = <span class="s">"""You summarise web pages for people who are deciding
+whether to read them.
+
+Every summary you write:
+- opens with the single most useful fact, not a description of the page
+- is under 80 words
+- uses plain language a commuter would use
+- keeps any number that affects a decision: times, fares, dates, distances
+- ignores navigation menus, adverts, cookie notices and "also read" links
+
+If the page does not say something, do not fill the gap. Say the page
+does not mention it."""</span>
+
+
+<span class="k">def</span> summarize(page_text):
+    response = client.chat.completions.create(
+        model=<span class="s">"openai/gpt-oss-120b"</span>,
+        temperature=0.2,            <span class="c"># low: a summary should not vary run to run</span>
+        reasoning_effort=<span class="s">"low"</span>,     <span class="c"># summarising has no dependent steps</span>
+        messages=[
+            {<span class="s">"role"</span>: <span class="s">"system"</span>, <span class="s">"content"</span>: SYSTEM_PROMPT},
+            {<span class="s">"role"</span>: <span class="s">"user"</span>,   <span class="s">"content"</span>: f<span class="s">"Summarise this page:\n\n{page_text}"</span>},
+        ],
+    )
+    <span class="k">return</span> response.choices[0].message.content
+
+
+<span class="c"># Next class this text arrives from a real web page. For now, paste some in.</span>
+<span class="k">if</span> __name__ == <span class="s">"__main__"</span>:
+    sample = <span class="s">"""&lt;paste the metro page text here&gt;"""</span>
+    <span class="k">print</span>(summarize(sample))</pre></div>
+
+  <h3>Do it</h3>
+  <ol>
+    <li>Create <code>summarizer.py</code> in the same folder as your <code>.env</code> from Class 1.</li>
+    <li>Replace <code>SYSTEM_PROMPT</code> with the one you wrote today, not the sample.</li>
+    <li>Paste the metro page text into <code>sample</code> and run it.</li>
+    <li>Change one rule in your prompt and run again. Watch the output move.</li>
+  </ol>
+  <div class="callout"><strong>Important</strong><p>The temperature is 0.2, not the default. Class 1 taught the dial; this is the first time you use it for a reason. A summary of the same page should not change between runs, so you want the model near the top of its probability list every time.</p></div>
+
+  <details><summary>Why is the page text in the user message and the prompt in the system message? <span class="tag">Common doubt</span></summary><div>
+    <p>You could put both together and it would mostly work. Keeping them separate matters for a reason you meet properly next class: the page text is <b>untrusted</b>. It comes from the internet, and anyone can put anything on a web page, including instructions aimed at your model. Keeping your rules in the system slot and the page in the user slot is the first line of that defence.</p></div></details>
+  <details><summary>Troubleshooting <span class="tag">Common failures</span></summary><div>
+    <ul>
+      <li>A stray quote inside your own prompt can break the triple-quoted string.</li>
+      <li>The file must sit in the same folder as the <code>.env</code>.</li>
+      <li>An unexpected keyword error on <code>reasoning_effort</code> means an old <code>openai</code> package. Deleting that one line is harmless: the model uses its default effort. Then run <code>pip install -U openai</code>.</li>
+    </ul></div></details>
+</section>
+
+<!-- 11 -->
+<section id="s11" data-title="Wrap-up">
+  <span class="num">11</span>
+  <h2>Wrap-up and what is next</h2>
+  <h3>The techniques, and when to reach for each</h3>
+  <div class="tw"><table>
+    <tr><th>Technique</th><th>Reach for it when</th></tr>
+    <tr><td>RCTFC</td><td>Always. It is the baseline, not a technique.</td></tr>
+    <tr><td>Role</td><td>Tone or audience keeps coming out wrong.</td></tr>
+    <tr><td>Few-shot</td><td>The format is yours and hard to describe in words.</td></tr>
+    <tr><td>Structured output</td><td>A program reads the result, not a person.</td></tr>
+    <tr><td>Chain-of-thought</td><td>The model is not thinking first, or you want to steer which steps happen.</td></tr>
+    <tr><td>Self-critique</td><td>A mistake costs more than a second pass.</td></tr>
+    <tr><td>Chaining</td><td>The task description has "and" between two verbs.</td></tr>
+  </table></div>
+
+  <h3>The checklist to keep</h3>
+  <p>Before you send a prompt, tick these off.</p>
+  <div class="card" id="pre"></div>
+
+  <h3>Where this goes</h3>
+  <div class="tw"><table>
+    <tr><th>Class</th><th>What you have</th></tr>
+    <tr><td>1</td><td>A key, a client, a reply</td></tr>
+    <tr><td>2, today</td><td><code>summarizer.py</code> with a prompt you wrote</td></tr>
+    <tr><td>3</td><td>The scraper, a web interface, the safety work, and a public link</td></tr>
+  </table></div>
+  <p>Class 3 finishes the app. You add the scraper that fetches a real page, a web interface so it is not a terminal script, and then the part that matters most: your model will be reading text written by strangers on the internet, and we spend real time on what that means and how to build for it.</p>
+
+  <h3>Resources</h3>
+  <div class="tw"><table>
+    <tr><th>Resource</th><th>Link</th></tr>
+    <tr><td>Chat window for iterating</td><td><a href="https://chat.openai.com" target="_blank" rel="noopener">chat.openai.com</a></td></tr>
+    <tr><td>Claude</td><td><a href="https://claude.ai" target="_blank" rel="noopener">claude.ai</a></td></tr>
+    <tr><td>Free API keys, from Class 1</td><td><a href="https://console.groq.com" target="_blank" rel="noopener">console.groq.com</a></td></tr>
+  </table></div>
+</section>
+
+</main>
+</div>
+
+<footer>Prompt enginnering post read<small>Class 2 · AI and Agents</small></footer>
+
+<script>
+(function(){
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const esc=t=>t.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+
+/* nav */
+const secs=$$('main section');
+$('#topnav').innerHTML=secs.map(s=>`<a href="#${s.id}">${s.dataset.title}</a>`).join('');
+$('#toc').innerHTML=secs.map((s,i)=>`<li><a href="#${s.id}">${String(i+1).padStart(2,'0')} · ${s.dataset.title}</a></li>`).join('');
+function onScroll(){
+  const h=document.documentElement;
+  $('#pbar').style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight)*100)+'%';
+  let cur=secs[0].id;secs.forEach(s=>{if(s.getBoundingClientRect().top<140)cur=s.id});
+  $$('#topnav a,#toc a').forEach(a=>a.classList.toggle('on',a.getAttribute('href')==='#'+cur));
+}
+addEventListener('scroll',onScroll,{passive:true});onScroll();
+$$('.copy').forEach(b=>b.addEventListener('click',()=>{
+  const t=b.closest('.codewrap').querySelector('pre').innerText;
+  (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>{b.textContent='Copied'},()=>{b.textContent='Select & copy'});
+  setTimeout(()=>b.textContent='Copy',1600);
+}));
+function toggleGroup(btns,fn){btns.forEach(b=>b.addEventListener('click',()=>{btns.forEach(x=>x.setAttribute('aria-pressed',x===b));fn(b)}))}
+
+/* page */
+const PAGE=`<p class="nz">Home  News  City  Sport  Business  Subscribe  Login</p>
+<h4>Pune Metro Line 3 opens to the public from Monday</h4>
+<p>PUNE, 24 Oct -- The <span class="num r-e">23.3 km</span> Hinjawadi to Shivajinagar line will open to passengers <span class="r-c">from Monday</span>, the Maharashtra Metro Rail Corporation said on Friday.</p>
+<p><span class="r-c">Services run <span class="num">06:00 to 22:00</span> on weekdays, with trains every <span class="num">8 minutes</span> at peak and every <span class="num">15 minutes</span> off-peak. Fares range from <span class="num">Rs 10 to Rs 45</span> depending on distance.</span> <span class="r-e">The line has <span class="num">23 stations</span>, of which <span class="num">21</span> are elevated.</span></p>
+<p>Officials said the line is expected to carry <span class="r-i"><span class="num">around 90,000 passengers a day</span> in its first year</span>, and that a feeder bus service will connect six stations to nearby IT parks. Parking is available at nine stations at <span class="num">Rs 20 for two hours</span>.</p>
+<p><span class="r-e">The corporation said the remaining two stations will open in March once construction of the Shivajinagar interchange is complete.</span></p>
+<p class="nz">Also read: Ten things to do in Pune this weekend</p>
+<p class="nz">Advertisement</p>
+<p class="nz">Copyright 2026. All rights reserved.</p>`;
+$('#pg1').innerHTML=PAGE;$('#pg2').innerHTML=PAGE;
+const N1={raw:'The text exactly as a scraper would hand it to your app.',noise:'Dashed, struck-through lines are noise: the navigation menu, the "Also read" link, the advert and the copyright. A good summary ignores them.',nums:'Underlined figures are the numbers that affect a reader\'s decision: times, fares, distances, counts.'};
+toggleGroup($$('#pgmodes1 button'),b=>{$('#pg1').dataset.mode=b.dataset.m;$('#pgnote1').textContent=N1[b.dataset.m]});
+const N2={c:'A commuter gets times and fares: when it opens, when trains run, how often, what it costs.',e:'A civil engineer gets the structure: line length, elevated stations, and the Shivajinagar interchange.',i:'An investor gets the demand figure: around 90,000 passengers a day in the first year.'};
+$('#pgnote2').textContent=N2.c;
+toggleGroup($$('#pgmodes2 button'),b=>{$('#pg2').dataset.mode=b.dataset.m;$('#pgnote2').textContent=N2[b.dataset.m]});
+
+/* quizzes */
+const Q={
+ q1:{q:'A team ships an AI tool that rewrites customer complaints into polite support tickets. It uses the same public model their competitor uses, on the same free tier, yet reviewers say the output is clearly better. What most likely explains the gap?',
+  o:['They are using a larger context window','They trained their own model on support ticket data','They set a lower temperature on every request','The instructions wrapped around the user\'s input'],a:3,
+  e:'Same model and same tier rules out a capability difference, and training a model is a different order of effort and cost from what was described. A larger window and a lower temperature change how much the model sees and how varied it is, not whether it knows what a good support ticket looks like. The instructions carry that knowledge.'},
+ q2:{q:'Someone writes: "You are an experienced editor. Please go through the text below carefully and improve it, paying attention to quality and making sure it reads well for the audience." The output comes back long and unfocused. Which RCTFC parts are missing?',
+  o:['Role and Context','Format and Constraints','Task and Role','Context and Task, since the model was never told what the text is about or what to do with it'],a:1,
+  e:'Role is there, and the task is there, if loosely. What is entirely absent is the shape of the answer and any limit on it: no length, no structure, no statement of what "improve" is allowed to change. Without those, a model has nothing to aim at, so it writes more rather than better. Option D is tempting because the prompt is vague overall, but "improve the text below" is a task, however broad.'},
+ q3:{q:'Your team has a particular way of writing release notes that everyone recognises but nobody has ever written down. You want AI drafts in that style. What is the most reliable approach?',
+  o:['Describe the style as precisely as you can in the prompt and ask the model to follow it','Ask the model to first infer your style, then write in it','Paste two or three past release notes into the prompt, then ask for the new one','Raise the temperature so the model writes with more personality and stops sounding generic'],a:2,
+  e:'The problem is that nobody can describe the style, which is exactly the case few-shot exists for: the examples carry the detail you cannot put into words, including the parts you have never noticed. A ignores the premise. B asks the model to guess at something it has not been shown. D changes variety, not style.'},
+ q4:{q:'A learner adds "think through this step by step before answering" to every prompt, including simple ones sent to a reasoning model. What is the most accurate assessment?',
+  o:['On a reasoning model it adds little, since the model already works through steps before answering','It consistently improves output quality, which is why it should be a habit on every prompt','It harms output quality, because forcing explicit steps overrides the model\'s own internal reasoning and produces worse answers than it would otherwise have given','It has no effect on any model, since the instruction is ignored during generation'],a:0,
+  e:'Reasoning models already spend tokens working through the problem before they answer, so the instruction is largely redundant there. It is still worth adding when the model is not thinking first, which is why the technique is a decision about how much thinking you have asked for rather than a habit. C overstates the harm and D is simply untrue on a model answering in one pass.'},
+ q5:{q:'A single prompt asks the model to read a long complaint, extract the key facts, write a reply, and translate the reply into Hindi. The facts come out accurate but the Hindi reply drops two of them. What is the sound fix?',
+  o:['Add "be thorough and do not miss anything" to the prompt','Split it into separate prompts and pass the extracted facts forward','Switch to a model with a larger context window so nothing falls out of the window','Provide three examples of completed complaint replies in Hindi so the model can match the expected format and length'],a:1,
+  e:'Four jobs in one prompt, and quality fell off at the last one, which is the signature of too much in a single step. Splitting it means the translation step receives a short, finished reply instead of competing with three other instructions. C misdiagnoses it: a single complaint is nowhere near a context limit. D fixes format, not dropped facts.'}
+};
+$$('.quiz').forEach(box=>{
+  const id=box.dataset.quiz,d=Q[id];
+  box.innerHTML=`<div class="qh">Knowledge check</div><p class="q" id="${id}q">${d.q}</p><div class="opts" role="group" aria-labelledby="${id}q">${d.o.map((t,i)=>`<button class="opt" data-i="${i}">${t}</button>`).join('')}</div><div aria-live="polite" class="exwrap"></div>`;
+  box.querySelector('.opts').addEventListener('click',e=>{
+    const b=e.target.closest('.opt');if(!b)return;const i=+b.dataset.i;
+    box.querySelectorAll('.opt').forEach(x=>{x.disabled=true;const j=+x.dataset.i;
+      if(j===d.a){x.classList.add('right');x.insertAdjacentHTML('afterbegin','✓ ')}
+      else if(j===i){x.classList.add('wrong');x.insertAdjacentHTML('afterbegin','✗ ')}});
+    box.querySelector('.exwrap').innerHTML=`<div class="ex"><b>${i===d.a?'That\'s right.':'Not quite.'}</b> ${d.e}</div>`;
+  });
+});
+
+/* A vs B */
+const PA='Summarise this.\n\n[page text]';
+const PB=`You summarise web pages for people who are deciding whether to read them.
+
+Every summary you write:
+- opens with the single most useful fact, not a description of the page
+- is under 80 words
+- uses plain language a commuter would use
+- keeps any number that affects a decision: times, fares, dates, distances
+- ignores navigation menus, adverts, cookie notices and "also read" links
+
+If the page does not say something, do not fill the gap. Say the page does not mention it.
+
+[page text]`;
+function showCmp(k){
+  $('#cmpA').setAttribute('aria-pressed',k==='a');$('#cmpB').setAttribute('aria-pressed',k==='b');
+  $('#cmpP').textContent=k==='a'?PA:PB;
+  $('#cmpT').textContent=k==='a'?'Result: competent, but shapeless':'Result: a product you could put in front of a user';
+  $('#cmpD').textContent=k==='a'?'It reads fine, but it has no shape, and some of the time it includes the navigation menu or the advertisement.':'The rules tell the model what to open with, how long to be, which numbers to keep and what to ignore, and what to do when the page is silent.';
+}
+$('#cmpA').addEventListener('click',()=>showCmp('a'));$('#cmpB').addEventListener('click',()=>showCmp('b'));showCmp('a');
+
+/* RCTFC builder */
+const RP=[
+ ['R','Role','You summarise web pages for people who are deciding whether to read them.','Sets tone and audience. The output finally sounds like a product rather than a book report.'],
+ ['C','Context','The text below is scraped from a news page and will be shown in an app to someone in a hurry.','The output starts addressing a reader instead of nobody.'],
+ ['T','Task','Summarise this page.','The one thing to do. On its own, the output is readable and shapeless, and usually swallows the navigation menu.'],
+ ['F','Format','Format: one opening line, then up to four bullets.','The output becomes scannable. Missing Format is the most common reason people say the AI did not do what they asked.'],
+ ['C','Constraints','Constraints: under 80 words; keep every number that affects a decision; ignore navigation and adverts; never add a fact the page does not contain.','It stops padding and stops inventing.']
+];
+let on=[false,false,true,false,false];
+$('#parts').innerHTML=RP.map((p,i)=>`<button data-i="${i}" aria-pressed="${on[i]}"><b>${p[0]}</b><span>${p[1]}</span></button>`).join('');
+let lastI=2;
+function renderR(){
+  $$('#parts button').forEach((b,i)=>b.setAttribute('aria-pressed',on[i]));
+  const lines=RP.map((p,i)=>on[i]?(i===lastI?`<span class="hl">${esc(p[2])}</span>`:esc(p[2])):null).filter(Boolean);
+  $('#rprompt').innerHTML=lines.join('\n\n')+'\n\n[page text]';
+  const n=on.filter(Boolean).length;$('#rmeter').style.width=n/5*100+'%';
+  $('#reffect').innerHTML=`<b>${RP[lastI][1]}: ${on[lastI]?'on':'off'}</b><p style="margin:6px 0 0">${RP[lastI][3]}</p><p class="note" style="margin:8px 0 0">${n} of 5 parts present${n===5?': complete.':'.'}</p>`;
+}
+$('#parts').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const i=+b.dataset.i;on[i]=!on[i];lastI=i;renderR()});
+renderR();
+
+/* few-shot */
+const ZS=`Summarise the page below.
+
+[page text]`;
+const FS=`Summarise the page below.
+Match the shape of these examples exactly.
+
+Cheaper and faster from Monday, if you are going to Hinjawadi.
+- Opens Monday, 06:00 to 22:00 on weekdays
+- Rs 10 to Rs 45, trains every 8 minutes at peak
+- 21 of 23 stations open now, two more in March
+
+Worth it only if you book before the 30th.
+- Early fare ends 30 Nov, Rs 1,200 after
+- Three sessions, two hours each, online
+- Recording available for 60 days
+
+[page text]`;
+function showFS(k){
+  $('#zs').setAttribute('aria-pressed',k==='z');$('#fs').setAttribute('aria-pressed',k==='f');
+  $('#fsp').textContent=k==='z'?ZS:FS;
+  $('#fsn').innerHTML=k==='z'?'<b>Zero-shot.</b> Instructions only. The model decides the shape on its own.':'<b>Few-shot.</b> The output copies the shape exactly: the dash, the sentence rhythm, and the way numbers are written, none of which you described.';
+}
+$('#zs').addEventListener('click',()=>showFS('z'));$('#fs').addEventListener('click',()=>showFS('f'));showFS('z');
+
+/* JSON lab */
+const JS_={
+ clean:`{
+  "headline": "Pune Metro Line 3 opens Monday",
+  "bullets": ["Runs 06:00 to 22:00 on weekdays", "Trains every 8 minutes at peak", "Fares Rs 10 to Rs 45"],
+  "numbers_mentioned": ["Rs 10 to Rs 45", "06:00 to 22:00"],
+  "page_type": "news"
+}`,
+ chatty:`Sure! Here is the JSON summary you asked for:
+
+{
+  "headline": "Pune Metro Line 3 opens Monday",
+  "bullets": ["Runs 06:00 to 22:00 on weekdays", "Fares Rs 10 to Rs 45"],
+  "numbers_mentioned": ["Rs 10 to Rs 45", "06:00 to 22:00"],
+  "page_type": "news"
+}`,
+ fence:'```json\n{\n  "headline": "Pune Metro Line 3 opens Monday",\n  "bullets": ["Runs 06:00 to 22:00 on weekdays", "Fares Rs 10 to Rs 45"],\n  "numbers_mentioned": [],\n  "page_type": "news"\n}\n```',
+ bad:`{
+  "headline": "Pune Metro Line 3 opens Monday",
+  "bullets": ["Runs 06:00 to 22:00 on weekdays"],
+  "numbers_mentioned": "Rs 10 to Rs 45",
+  "page_type": "article"
+}`
+};
+function row(ok,t){return `<div class="${ok?'pass':'fail'}"><b class="${ok?'ok':'bad'}">${ok?'✓':'✗'}</b><span>${t}</span></div>`}
+function runJ(){
+  const t=$('#jin').value;let h='';
+  try{
+    const o=JSON.parse(t);h+=row(true,'Valid JSON: <code>json.loads</code> would succeed.');
+    const ks=['headline','bullets','numbers_mentioned','page_type'];
+    h+=row(ks.every(k=>k in o),'Has exactly the four keys: '+ks.join(', '));
+    h+=row(Array.isArray(o.bullets)&&o.bullets.length>=2&&o.bullets.length<=4,'<code>bullets</code> has between 2 and 4 items');
+    h+=row(Array.isArray(o.numbers_mentioned),'<code>numbers_mentioned</code> is a list (use [] when there are none)');
+    h+=row(['news','product','blog','documentation','other'].includes(o.page_type),'<code>page_type</code> is one of news, product, blog, documentation, other');
+  }catch(e){
+    h+=row(false,'Not valid JSON: <code>'+esc(String(e.message))+'</code>. In Python, <code>json.loads</code> would raise an error and your app would break.');
+    if(!t.trim().startsWith('{')&&!t.trim().startsWith('['))h+=row(false,'The text does not start with <code>{</code>: something other than JSON comes first.');
+  }
+  $('#jres').innerHTML=h;
+}
+$('#jin').value=JS_.clean;runJ();$('#jin').addEventListener('input',runJ);
+toggleGroup($$('[data-j]'),b=>{$('#jin').value=JS_[b.dataset.j];runJ()});
+
+/* CoT */
+let ct=0,cd=1;
+function renderCot(){
+  $$('[data-t]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.t==ct));
+  $$('[data-d]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.d==cd));
+  let t,d;
+  if(ct){t='Adds little';d='The model already works through the problem before it answers, so "think step by step" is largely redundant.'}
+  else if(cd){t='Still earns its place';d='No built-in thinking and dependent steps: name the stages (separate article from clutter, pick the decision numbers, write from only those) and the result is noticeably tighter.'}
+  else{t='Not needed';d='No dependent steps to reason through, like summarising a clean article. The plain instruction does fine.'}
+  $('#cotv').innerHTML=`<b>${t}</b><p style="margin:6px 0 0">${d}</p>`;
+}
+$$('[data-t]').forEach(b=>b.addEventListener('click',()=>{ct=+b.dataset.t;renderCot()}));
+$$('[data-d]').forEach(b=>b.addEventListener('click',()=>{cd=+b.dataset.d;renderCot()}));
+renderCot();
+
+/* self-critique */
+const DF={
+ flaw:'Pune Metro Line 3 is a brand new metro line that is opening soon and it is going to be really great for commuters all across the city of Pune. Home News City Sport Business Subscribe Login. The line goes from Hinjawadi to Shivajinagar and trains run frequently throughout the day so people will not have to wait long. Fares are affordable and there is a cafe at every station. Ten things to do in Pune this weekend. Advertisement.',
+ fix:'Pune Metro Line 3 opens Monday, running Hinjawadi to Shivajinagar, 06:00 to 22:00 on weekdays. Trains come every 8 minutes at peak and every 15 off-peak. Fares run Rs 10 to Rs 45. Two stations open in March, once the Shivajinagar interchange is finished.'
+};
+const KEYS=['06:00','22:00','Rs 10','Rs 45','8 minutes'];
+function runD(){
+  const t=$('#din').value,w=t.trim().split(/\s+/).filter(Boolean).length;
+  const miss=KEYS.filter(k=>!t.includes(k));
+  const leak=(t.match(/\b(Subscribe|Login|Also read|Advertisement|Copyright|Ten things to do)\b/gi)||[]);
+  $('#dres').innerHTML=
+   row(miss.length===0,miss.length?'Numbers that affect a decision are missing: '+miss.join(', '):'Every decision number is still in it ('+KEYS.join(', ')+')')+
+   row(leak.length===0,leak.length?'Navigation, advert or "also read" text leaked in: '+[...new Set(leak)].join(', '):'No navigation, advert or "also read" text leaked in')+
+   row(w<80,'Length: '+w+' words ('+(w<80?'under':'over')+' the 80-word limit)');
+}
+$('#din').value=DF.flaw;runD();$('#din').addEventListener('input',runD);
+$('#dflaw').addEventListener('click',()=>{$('#dflaw').setAttribute('aria-pressed',true);$('#dfix').setAttribute('aria-pressed',false);$('#din').value=DF.flaw;runD()});
+$('#dfix').addEventListener('click',()=>{$('#dfix').setAttribute('aria-pressed',true);$('#dflaw').setAttribute('aria-pressed',false);$('#din').value=DF.fix;runD()});
+
+/* chain */
+const FL=[
+ ['The page','Raw scraped text: navigation, article, adverts, copyright.','Home News City Sport ...\nPune Metro Line 3 opens...\nAdvertisement\nCopyright 2026'],
+ ['Prompt 1: extract','One job: strip the page to the article and pull out the facts as JSON.','{\n "opens": "Monday",\n "hours": "06:00 to 22:00",\n "fares": "Rs 10 to Rs 45",\n "peak_gap": "8 minutes"\n}'],
+ ['Prompt 2: summarise','One job: turn the clean facts into the summary a person reads. It never sees the messy page.','Pune Metro Line 3 opens Monday, running 06:00 to 22:00. Trains every 8 minutes at peak. Fares Rs 10 to Rs 45.']
+];
+let cs=0;
+function renderFlow(){
+  $('#flow').innerHTML=FL.map((f,i)=>`<div class="box ${i<=cs?'on':''}"><h5>${f[0]}</h5><p style="margin:0 0 6px">${f[1]}</p>${i<=cs?`<pre>${esc(f[2])}</pre>`:''}</div>`).join('<div class="arr" aria-hidden="true">→</div>').replace(/(<\/div>)(<div class="arr")/g,'$1$2');
+  $('#cstep').textContent='Step '+(cs+1)+' of 3';
+  $('#cprev').disabled=cs===0;$('#cnext').disabled=cs===2;
+}
+$('#cprev').addEventListener('click',()=>{if(cs>0){cs--;renderFlow()}});
+$('#cnext').addEventListener('click',()=>{if(cs<2){cs++;renderFlow()}});
+renderFlow();
+
+/* and test */
+function runA(){
+  const t=$('#ain').value.trim();
+  if(!t){$('#ares').innerHTML='Type a task, or pick an example.';return}
+  const two=/\b\w+\b\s+(?:\w+\s+){0,4}and\s+\w+/i.test(t)&&/\band\b/i.test(t);
+  $('#ares').innerHTML=two?'<b>Probably two prompts.</b><p style="margin:6px 0 0">There is an "and" joining two jobs. Give each its own prompt and pass the first output to the second.</p>':'<b>Probably one prompt.</b><p style="margin:6px 0 0">One verb, one job.</p>';
+}
+$('#ain').addEventListener('input',runA);
+$$('[data-a]').forEach(b=>b.addEventListener('click',()=>{$('#ain').value=b.dataset.a;runA()}));
+$('#ain').value='Extract the facts and summarise them';runA();
+
+/* pre-send checklist */
+const PC=['Who is writing (Role)','What is going on and who reads it (Context)','The one thing to do (Task)','The shape of the answer (Format)','The limits (Constraints)','What should happen when information is missing','Whether anything other than the answer is allowed in the output'];
+$('#pre').innerHTML=`<div id="pcl">${PC.map((t,i)=>`<label style="display:flex;gap:10px;align-items:center;font-weight:400;font-size:16px;margin:6px 0"><input type="checkbox" data-c> ${t}${i>4?' <span class="tag" style="font-size:11px;background:var(--beige-3);border-radius:99px;padding:1px 8px">often forgotten</span>':''}</label>`).join('')}</div><div class="meter" style="margin-top:12px"><i id="pcm"></i></div><small id="pct" aria-live="polite">0 of 7 ticked</small>`;
+$('#pre').addEventListener('change',()=>{const n=$$('[data-c]:checked').length;$('#pcm').style.width=n/7*100+'%';$('#pct').textContent=n+' of 7 ticked'+(n===7?': ready to send.':'')});
+})();
+</script>
+</body>
+</html>
